@@ -1,3 +1,7 @@
+const statusCheck = response => {
+  return response.status < 400 ? response : new Error(response.statusText) 
+};
+
 class Todo {
   constructor(props) {
     this.id = props.id;
@@ -56,6 +60,10 @@ class TodoList {
     this.fetchTodo(id).complete();
   }
 
+  completed() {
+    return this.todos.filter(todo => todo.completed);
+  }
+
   toggle(id) {
     this.fetchTodo(id).toggle();
   }
@@ -73,16 +81,136 @@ class TodoList {
   }
 }
 
-const props = { id: 1, title: 'todo item', day: '01', month: '04', year: '19',
-  completed: false, description: '',
-};
 
-const props2 = { id: 2, title: 'todo item', day: '01', month: '04', year: '19',
-  completed: false, description: '',
-};
+// the app loop is basically, whenever something happens, update
+// the state and re-render. changing groups is a natural time to refresh the
+// list from the server and create a fresh state
+class App {
+  constructor() {
+    this.registerTemplates();
 
-const props3 = { id: 3, title: 'todo item', day: '01', month: '05', year: '19',
-  completed: false, description: '',
-};
+    // Pre-render an empty list to improve perceived load time. This is mostly
+    // necessary since Babel converts our code at runtime, which is a significant
+    // performance hit. For production, we would transpile our code from a build
+    // script in the dev environment, and only ship the transpiled asset. This
+    // would also save us a network request for the Babel package. Another performance
+    // hit is compiling our templates at run-time instead of during a pre-production
+    // build step.
+    this.todoList = new TodoList([]);
+    this.group = {title: 'All Todos', todos: this.todoList};
+    this.render();
 
-const todos = new TodoList([props]);
+    fetch('/api/todos')
+      .then(statusCheck)
+      .then(response => response.json())
+      .then(todos => this.setInitialState(todos))
+      .then(() => this.render())
+      .then(() => this.bindEvents())
+      .catch(error => {
+        alert('Failed to get todos. Please try refreshing page.');
+        console.log(error);
+      }); 
+  }
+
+  registerTemplates() {
+    const templates = Array.from(
+      document.querySelectorAll('[type="text/x-handlebars"]')
+    );
+
+    templates.forEach(template => {
+      const templateFunc = Handlebars.compile(template.innerHTML);
+      Handlebars.registerPartial(template.id, templateFunc);
+
+      if (template.id === 'main_template') {
+        this.mainTemplate = templateFunc;
+      }
+    });
+  }
+
+  setInitialState(todos) {
+    this.todoList = new TodoList(todos);
+    this.group = {
+      title: 'All Todos',
+      todos: this.todoList.todos,
+    };
+
+    return Promise.resolve();
+  }
+
+  getState() {
+    return {
+      // Used by nav area
+      todos: this.todoList.todos,
+      todos_by_date: {'04/19': [/* todos */]},
+      done: this.todoList.completed(),
+      done_todos_by_date: {'04/19': [/* todos */]},
+
+      // Used by main area
+      current_section: {title: this.group.title, data: this.group.todos.length},
+      selected: this.group.todos,
+    };
+  }
+
+  render() {
+    document.body.innerHTML = this.mainTemplate(this.getState());
+  }
+
+  bindEvents() {
+    const addTodoButton = document.querySelector('[for=new_item]');
+    const modalLayer = document.getElementById('modal_layer');
+    const formModal = document.getElementById('form_modal');
+    const addTodoForm = formModal.querySelector('form');
+
+    addTodoButton.onclick = () => {
+      modalLayer.classList.remove('hidden');
+      formModal.classList.remove('hidden');
+    };
+
+    modalLayer.onclick = () => {
+      modalLayer.classList.add('hidden');
+      formModal.classList.add('hidden');
+      addTodoForm.reset();
+    };
+
+    addTodoForm.querySelector('[value=Save]').onclick = (event) => {
+      event.preventDefault();
+      // serialize form data
+      const data = Array.from(addTodoForm.elements).reduce((data, el) => {
+        const name = el.getAttribute('name');
+
+        if (name) {
+          data[name] = el.value;
+        }
+        return data;
+      }, {});
+      
+      console.log(data)
+
+      if (data.title.length < 3) {
+        alert('Title must be at least 3 characters long');
+        return;
+      }
+
+      const headers = new Headers();
+      headers.append('Content-Type', 'application/json');
+
+      fetch('/api/todos', {method: 'POST', headers: headers, body: JSON.stringify(data)})
+        .then(status)
+        .then(response => response.json())
+        .then(todo => {
+          this.todoList.add(todo);
+          this.render();
+          this.bindEvents();
+        })
+        .catch(error => console.log(error));
+    };
+
+    addTodoForm.querySelector('[id=complete]').onclick = (event) => {
+      event.preventDefault();
+      // serialize
+      console.log('hi');
+    };
+  }
+}
+
+const app = new App();

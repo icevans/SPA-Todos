@@ -14,7 +14,7 @@
   <input type="checkbox" id="sidebar_toggle"/>
   <div id="sidebar" >
     <section id="all">
-      <div id="all_todos">
+      <div id="all_todos" class=>
         {{> all_todos_template}}
       </div>
       <article id="all_lists">
@@ -44,8 +44,8 @@
           {{> list_template}}
         </tbody>
       </table>
-        <div class="modal" id="modal_layer"></div>
-        <div class="modal" id="form_modal">
+        <div class="modal hidden" id="modal_layer"></div>
+        <div class="modal hidden" id="form_modal">
           <form action="" method="post">
             <fieldset>
               <ul>
@@ -128,7 +128,7 @@
                 </li>
                 <li>
                   <input type="submit" value="Save" />
-                  <button name="complete">Mark As Complete</button>
+                  <button id="complete">Mark As Complete</button>
                 </li>
               </ul>
             </fieldset>
@@ -159,7 +159,7 @@
   </script>
 
   <script type="text/x-handlebars" id="all_todos_template" data-type="partial">
-    <header data-title="All Todos" data-total="{{todos.length}}" id="all_header">
+    <header data-title="All Todos" data-total="{{todos.length}}" id="all_header" class="active">
       <dl>
        <dt>All Todos</dt><!--
       --><dd>{{todos.length}}</dd>
