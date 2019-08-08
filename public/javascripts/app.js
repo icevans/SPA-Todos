@@ -193,8 +193,6 @@ class App {
         return data;
       }, {});
  
-      console.log(data)
-
       if (data.title.length < 3) {
         alert('Title must be at least 3 characters long');
         return;

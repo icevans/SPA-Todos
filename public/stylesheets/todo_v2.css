@@ -202,10 +202,10 @@ header dt, header dd{
 table td input[type="checkbox"]:hover{
   cursor: normal;
 }
-table td input[type="checkbox"]:checked ~ label {
+/* table td input[type="checkbox"]:checked ~ label {
   color: #b3b3b3;
   text-decoration: line-through;
-}
+} */
 label {
   cursor: pointer;
   padding-left: 30px;
