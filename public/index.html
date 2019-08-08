@@ -33,7 +33,7 @@
   <script type="text/x-handlebars" id="main_template">
   <input type="checkbox" id="sidebar_toggle"/>
   <div id="sidebar" >
-    <section id="all">
+    <section id="all" data-group="All Todos">
       <div id="all_todos" class=>
         {{> all_todos_template}}
       </div>
@@ -41,7 +41,7 @@
         {{> all_list_template}}
       </article>
     </section>
-    <section class="completed" id="completed_items">
+    <section class="completed" id="completed_items" data-group="Completed">
       <div id="completed_todos">
         {{> completed_todos_template}}
       </div>
@@ -174,12 +174,20 @@
 
   <script type="text/x-handlebars" id="list_template" data-type="partial">
     {{#each selected}}
+    {{#unless this.completed}}
     {{> item_partial}}
+    {{/unless}}
+    {{/each}}
+
+    {{#each selected}}
+    {{#if this.completed}}
+    {{> item_partial}}
+    {{/if}}
     {{/each}}
   </script>
 
   <script type="text/x-handlebars" id="all_todos_template" data-type="partial">
-    <header data-title="All Todos" data-total="{{todos.length}}" id="all_header" class="active">
+    <header data-title="All Todos" data-total="{{todos.length}}" id="all_header">
       <dl>
        <dt>All Todos</dt><!--
       --><dd>{{todos.length}}</dd>

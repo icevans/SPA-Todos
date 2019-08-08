@@ -16,3 +16,11 @@ responsible for coordinating between the server, the `TodoList`, and the `Displa
 It is also responsible for registering all event handlers (here there is some
 leakage between the `App` and the `Display`, but this seems acceptable in such
 a simple application).
+
+## Assumptions
+
+- If a user opens the edit modal for a todo, makes some changes, and then hits 
+'Mark as Complete', the todo will not only be marked as complete, it will have its
+other values updated as per the form.
+- Todos should be listed in the order they were added, which corresponds to the order
+of their id.
