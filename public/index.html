@@ -5,11 +5,31 @@
   <meta charset="UTF-8" />
   <link rel="stylesheet" href="stylesheets/todo_v2.css" />
   <script defer src="https://polyfill.io/v3/polyfill.min.js?flags=gated&features=es6"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script> -->
   <script defer src="javascripts/handlebars-v4.0.5.js"></script>
-  <script defer type="text/babel" src="javascripts/app.js"></script>
+  <script defer src="javascripts/app.js"></script>
 </head>
 <body>
+  <div class="hidden">
+    <script>
+      var images = new Array()
+			function preload() {
+				for (i = 0; i < preload.arguments.length; i++) {
+					images[i] = new Image()
+					images[i].src = preload.arguments[i]
+				}
+			}
+			preload(
+				"images/hamburger.png",
+				"images/lable.png",
+        "images/plus.png",
+        "images/completed.png",
+        "images/trash.png",
+        "images/checkbox.png",
+        "images/checked.png",
+			)
+    </script>
+  </div>
   <script type="text/x-handlebars" id="main_template">
   <input type="checkbox" id="sidebar_toggle"/>
   <div id="sidebar" >
