@@ -2,6 +2,7 @@ const statusCheck = response => {
   return response.status < 400 ? response : new Error(response.statusText) 
 };
 
+// TODO: Eliminate duplication between constructor and update
 class Todo {
   constructor(props) {
     this.id = props.id;
@@ -35,6 +36,7 @@ class Todo {
     this.day = props.day;
     this.month = props.month;
     this.year = props.year;
+    this.due_date = this.dueDate(props.month, props.year);
     this.completed = props.completed;
     this.description = props.description;
   }
@@ -85,8 +87,18 @@ class TodoList {
     this.todos = this.todos.filter(todo => todo.id !== id);
   }
 
-  filter(groupString) {
-    return this.todos.filter(todo => todo.groupString() === groupString);
+  filter(filterOptions) {
+    let filtered = this.todos;
+
+    if (filterOptions.complete) {
+      filtered = filtered.filter(todo => todo.complete);
+    }
+
+    if (filterOptions.date) {
+      filtered = filtered.filter(todo => todo.due_date === filterOptions.date);
+    }
+    
+    return filtered;
   }
 }
 
@@ -106,13 +118,13 @@ class App {
     // hit is compiling our templates at run-time instead of during a pre-production
     // build step.
     this.todoList = new TodoList([]);
-    this.group = {title: 'All Todos', todos: this.todoList};
+    this.group = 'All Todos';
     this.render();
 
     fetch('/api/todos')
       .then(statusCheck)
       .then(response => response.json())
-      .then(todos => this.setInitialState(todos))
+      .then(todos => this.todoList = new TodoList(todos))
       .then(() => this.render())
       .then(() => this.bindEvents())
       .catch(error => {
@@ -136,17 +148,16 @@ class App {
     });
   }
 
-  setInitialState(todos) {
-    this.todoList = new TodoList(todos);
-    this.group = {
-      title: 'All Todos',
-      todos: this.todoList.todos,
-    };
-
-    return Promise.resolve();
-  }
-
   getState() {
+    const title = this.subGroup ? this.subGroup : this.group;
+
+    console.log(this.todoList.todos);
+    
+    const selected = this.group === 'All Todos' ? 
+      this.todoList.filter({date: this.subGroup}) :
+      this.todoList.filter({date: this.subGroup, completed: true})
+    ;
+
     return {
       // Used by nav area
       todos: this.todoList.todos,
@@ -155,8 +166,8 @@ class App {
       done_todos_by_date: {'04/19': [/* todos */]},
 
       // Used by main area
-      current_section: {title: this.group.title, data: this.group.todos.length},
-      selected: this.group.todos,
+      current_section: {title: title, data: selected.length},
+      selected: selected,
     };
   }
 
@@ -203,7 +214,7 @@ class App {
       headers.append('Content-Type', 'application/json');
 
       fetch('/api/todos', {method: 'POST', headers: headers, body: JSON.stringify(data)})
-        .then(status)
+        .then(statusCheck)
         .then(response => response.json())
         .then(todo => {
           this.todoList.add(todo);
@@ -238,7 +249,14 @@ class App {
       } else if (target.classList.contains('delete') 
         || parent.classList.contains('delete')
       ) {
-        console.log(todoId);
+        fetch('/api/todos/' + todoId, {method: 'DELETE'})
+        .then(statusCheck)
+        .then(() => {
+          this.todoList.remove(Number(todoId));
+          this.render();
+          this.bindEvents();
+        })
+        .catch(error => console.log(error));
         return;
       }
     }
