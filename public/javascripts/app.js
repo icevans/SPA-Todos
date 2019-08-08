@@ -100,8 +100,26 @@ class TodoList {
     
     return filtered;
   }
-}
 
+  allDueDates() {
+    return this.countByDueDate(this.todos);
+  }
+  
+  completedDueDates() {
+    return this.countByDueDate(this.completed());
+  }
+
+  countByDueDate(todos) {
+    return todos.reduce((counts, todo) => {
+      counts[todo.due_date] = counts[todo.due_date] ?
+        counts[todo.due_date] + 1 :
+        1
+      ;
+
+      return counts;
+    }, {});
+  }
+}
 
 // the app loop is basically, whenever something happens, update
 // the state and re-render. changing groups is a natural time to refresh the
@@ -120,6 +138,8 @@ class App {
     this.todoList = new TodoList([]);
     this.group = 'All Todos';
     this.render();
+
+    // TODO: Display spinning wheel until we have initial response
 
     fetch('/api/todos')
       .then(statusCheck)
@@ -150,8 +170,6 @@ class App {
 
   getState() {
     const title = this.subGroup ? this.subGroup : this.group;
-
-    console.log(this.todoList.todos);
     
     const selected = this.group === 'All Todos' ? 
       this.todoList.filter({date: this.subGroup}) :
@@ -161,9 +179,9 @@ class App {
     return {
       // Used by nav area
       todos: this.todoList.todos,
-      todos_by_date: {'04/19': [/* todos */]},
+      todos_by_date: this.todoList.allDueDates(),
       done: this.todoList.completed(),
-      done_todos_by_date: {'04/19': [/* todos */]},
+      done_todos_by_date: this.todoList.completedDueDates(),
 
       // Used by main area
       current_section: {title: title, data: selected.length},
