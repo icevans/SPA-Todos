@@ -169,6 +169,7 @@ class App {
     const modalLayer = document.getElementById('modal_layer');
     const formModal = document.getElementById('form_modal');
     const addTodoForm = formModal.querySelector('form');
+    const todosList = document.getElementById('todosList');
 
     addTodoButton.onclick = () => {
       modalLayer.classList.remove('hidden');
@@ -192,9 +193,7 @@ class App {
         }
         return data;
       }, {});
-      
-      console.log(data);
-
+ 
       if (data.title.length < 3) {
         alert('Title must be at least 3 characters long');
         return;
@@ -214,11 +213,35 @@ class App {
         .catch(error => console.log(error));
     };
 
-    addTodoForm.querySelector('[id=complete]').onclick = (event) => {
+    addTodoForm.querySelector('[id=complete]').onclick = event => {
       event.preventDefault();
       // serialize
       console.log('hi');
     };
+
+    todosList.onclick = event => {
+      event.preventDefault();
+      const target = event.target;
+      const todoId = target.closest('tr').getAttribute('data-id');
+      const parent = target.parentElement;
+
+      // did they click on the todo or the delete button
+      if (target.tagName === 'LABEL') {
+        console.log('you clicked the thing that will open the modal for todo ' + todoId);
+        return;
+      }
+      else if (target.classList.contains('list_item') 
+        || parent.classList.contains('list_item')
+      ) {
+        console.log('you clicked todo' + todoId);
+        return;
+      } else if (target.classList.contains('delete') 
+        || parent.classList.contains('delete')
+      ) {
+        console.log(todoId);
+        return;
+      }
+    }
   }
 }
 
