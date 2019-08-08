@@ -9,8 +9,17 @@ class Todo {
     this.day = props.day;
     this.month = props.month;
     this.year = props.year;
+    this.due_date = this.dueDate(props.month, props.year);
     this.completed = props.completed;
     this.description = props.description;
+  }
+
+  dueDate(month, year) {
+    if (month && year) {
+      return month + '/' + year.slice(-2);
+    } else {
+      return 'No Due Date';
+    }
   }
 
   toggle() {
@@ -183,7 +192,7 @@ class App {
         }
         return data;
       }, {});
-      
+ 
       console.log(data)
 
       if (data.title.length < 3) {
