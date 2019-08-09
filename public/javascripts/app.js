@@ -114,6 +114,19 @@
     }
 
     countByDueDate(todos) {
+      // sort todos first by month, then year
+      todos.sort((a, b) => {
+        if (a.year !== b.year) {
+          if (a.year < b.year) { return -1; }
+          if (a.year > b.year) { return 1; }
+          if (a.year === b.year) { return 0; }
+        } else {
+          if (a.month < b.month) { return -1; }
+          if (a.month > b.month) { return 1; }
+          if (a.month === b.month) { return 0; }
+        }
+      });
+
       return todos.reduce((counts, todo) => {
         counts[todo.due_date] = counts[todo.due_date] ?
           counts[todo.due_date] + 1 :
