@@ -125,14 +125,150 @@
     }
   }
 
-  class App {
+  class Display {
     constructor() {
+      this.registerTemplates();
+    }
+
+    registerTemplates() {
+      const templates = Array.from(
+        document.querySelectorAll('[type="text/x-handlebars"]')
+      );
+
+      templates.forEach(template => {
+        const templateFunc = Handlebars.compile(template.innerHTML);
+        Handlebars.registerPartial(template.id, templateFunc);
+
+        if (template.id === 'main_template') {
+          this.mainTemplate = templateFunc;
+        }
+      });
+    }
+
+    render(context) {
+      document.body.innerHTML = this.mainTemplate(context);
+      this.highlightNavForCurrentGroup(context);
+    }
+
+    highlightNavForCurrentGroup(context) {
+      if (!context) {
+        return;
+      }
+
+      const selector = `[data-title="${context.current_section.title}"]`;
+      const allSection = document.getElementById('all');
+      const completedSection = document.getElementById('completed_items');
+      let activeNav;
+
+      if (context.mainGroup === ALL_TODOS) {
+        activeNav = allSection.querySelector(selector);
+      } else if (context.mainGroup === COMPLETED) {
+        activeNav = completedSection.querySelector(selector);
+      }
+
+      // It's possible there is no active nav. This is the case when we delete
+      // the last todo in a date group
+      if (activeNav) {
+        activeNav.classList.add('active');
+      }
+    }
+
+    showFormModal() {
+      document.getElementById('modal_layer').classList.remove('hidden');
+      document.getElementById('form_modal').classList.remove('hidden');
+    }
+
+    hideFormModal() {
+      const formModal = document.getElementById('form_modal');
+
+      document.getElementById('modal_layer').classList.add('hidden');
+      formModal.classList.add('hidden');
+      formModal.querySelector('form').reset();
+    }
+
+    getModalLayer() {
+      return document.getElementById('modal_layer');
+    }
+    getAddTodoButton() {
+      return document.querySelector('[for=new_item]');
+    }
+
+    getAddTodoForm() {
+      return document.querySelector('#form_modal form');
+    }
+
+    getTodoFormId() {
+      return Number(this.getAddTodoForm().getAttribute('data-id'));
+    }
+
+    formIsForNewTodo() {
+      return !this.getTodoFormId();
+    }
+
+    getTodosList() {
+      return document.getElementById('todosList');
+    }
+
+    getNavList() {
+      return document.getElementById('sidebar');
+    }
+
+    getSaveButton() {
+      return this.getAddTodoForm().querySelector('[value=Save]');
+    }
+
+    getMarkCompleteButton() {
+      return this.getAddTodoForm().querySelector('[id=complete]');
+    }
+
+    getContainingTodoId(target) {
+      return Number(target.closest('tr').getAttribute('data-id'));
+    }
+
+    targetIsTodoTitle(target) {
+      return target.tagName === 'LABEL';
+    }
+
+    targetIsTodoContainer(target) {
+      return !this.targetIsTodoTitle(target) && (
+        target.classList.contains('list_item') ||
+        target.parentElement.classList.contains('list_item')
+      );
+    }
+
+    targetIsDeleteButton(target) {
+      return target.classList.contains('delete')
+        || target.parentElement.classList.contains('delete');
+    }
+
+    getGroupTitle(target) {
+      return target.closest('section').getAttribute('data-group');
+    }
+
+    getSubgroupTitle(target) {
+      return target.closest('dl').getAttribute('data-title')
+    }
+
+    clickedMainGroup(target) {
+      const group = target.closest('section').querySelector('div');
+      const groupDescendents = Array.from(group.querySelectorAll("*"));
+
+      return target === group || groupDescendents.includes(target);
+    }
+
+    clickedOutsideNav(target) {
+      return !target.closest('section');
+    }
+  }
+
+  class App {
+    constructor(display) {
       this.todosResource = '/api/todos';
       this.todoResource = function(id) { return '/api/todos/' + id; };
-      this.registerTemplates();
+      this.display = display;
       this.todoList = new TodoList([]);
       this.group = ALL_TODOS;
-      this.render(); // pre-render while we wait on server for todos
+      this.display.render(); // pre-render while we wait on server for todos
       this.fetchTodos();
     }
 
@@ -151,7 +287,7 @@
       });
     }
 
-    getState() {
+    getContext() {
       const title = this.subGroup ? this.subGroup : this.group;
       const selected = this.group === ALL_TODOS ? 
         this.todoList.filter({date: this.subGroup}) :
@@ -159,6 +295,7 @@
       ;
       
       return {
+        mainGroup: this.group,
         todos: this.todoList.todos,
         todos_by_date: this.todoList.allDueDates(),
         done: this.todoList.completed(),
@@ -171,52 +308,18 @@
       };
     }
 
-    setGroups(navClickEvent) {
-      const group = navClickEvent.target.closest('section');
-      const subGroup = navClickEvent.target.closest('dl');
-
-      if (group && group.id === 'all') {
-        this.group = ALL_TODOS;
-      } else if (group && group.id === 'completed_items') {
-        this.group = COMPLETED;
+    setGroups(target) {
+      if (this.display.clickedOutsideNav(target)) {
+        return;
       }
 
-      if (subGroup) {
-        this.subGroup = subGroup.getAttribute('data-title');
-      }
-    }
+      this.group = this.display.getGroupTitle(target);
+      this.subGroup = this.display.clickedMainGroup(target)
+        ? null
+        : this.display.getSubgroupTitle(target)
+      ;
 
-    render() {
-      document.body.innerHTML = this.mainTemplate(this.getState());
-
-      const subGroups  = Array.from(
-        document.querySelector(`section[data-group="${this.group}"]`)
-        .querySelectorAll('dl')
-      );
-
-      if (this.subGroup) {
-        const activeGroup = subGroups.filter(subGroup => {
-          return subGroup.getAttribute('data-title') === this.subGroup;
-        })[0];
-        activeGroup.classList.add('active');
-      } else {
-        document
-          .querySelector(`section[data-group="${this.group}"] header`)
-          .classList.add('active');
-      }
-    }
-
-    displayModal() {
-      document.getElementById('modal_layer').classList.remove('hidden');
-      document.getElementById('form_modal').classList.remove('hidden');
-    }
-
-    hideModal() {
-      const formModal = document.getElementById('form_modal');
-
-      document.getElementById('modal_layer').classList.add('hidden');
-      formModal.classList.add('hidden');
-      formModal.querySelector('form').reset();
+      console.log(this.group, this.subGroup);
     }
 
     populateForm(form, todo) {
@@ -245,6 +348,15 @@
         alert('Title must be at least 3 characters')
         return false;
       }
+      const month = String(form.querySelector('[name="month"').value);
+      const year = String(form.querySelector('[name="year"').value);
+
+      console.log(/^\d{2}$/.test());
+
+      if (!/^\d{2}$/.test(month) && month !== '') {
+        alert('Please enter valid month');
+        return false;
+      }
       return true;
     }
 
@@ -254,13 +366,13 @@
         .then(response => response.json())
         .then(todos => {
           this.todoList = new TodoList(todos);
-          this.render();
+          this.display.render(this.getContext());
           this.bindEvents();
         })
         .catch(error => {
           alert('Failed to get todos. Please try refreshing page.');
           console.log(error);
-        }); 
+        });
     }
 
     sendTodoData(options) {
@@ -285,7 +397,7 @@
           this.todoList.add(todo);
           this.group = ALL_TODOS;
           this.subGroup = null;
-          this.render();
+          this.display.render(this.getContext());
           this.bindEvents();
         }
       });
@@ -298,7 +410,7 @@
         data: data,
         successCallback: todo => {
           this.todoList.update(id, todo);
-          this.render();
+          this.display.render(this.getContext());
           this.bindEvents();
         },
       });
@@ -313,97 +425,80 @@
       .then(statusCheck)
       .then(() => {
         this.todoList.remove(id);
-        this.render();
+        this.display.render(this.getContext());
         this.bindEvents();
       })
       .catch(error => console.log(error));
     }
 
     bindEvents() {
-      const addTodoButton = document.querySelector('[for=new_item]');
-      const modalLayer = document.getElementById('modal_layer');
-      const formModal = document.getElementById('form_modal');
-      const addTodoForm = formModal.querySelector('form');
-      const todosList = document.getElementById('todosList');
-      const navList = document.getElementById('sidebar');
+      const addTodoForm = this.display.getAddTodoForm();
 
-      addTodoButton.onclick = () => {
-        this.displayModal();
+      this.display.getAddTodoButton().onclick = () => {
+        this.display.showFormModal();
       };
 
-      modalLayer.onclick = () => {
-        this.hideModal();
+      this.display.getModalLayer().onclick = () => {
+        this.display.hideFormModal();
       };
 
-      // For clicking save in form modal
-      addTodoForm.querySelector('[value=Save]').onclick = (event) => {
+      this.display.getSaveButton().onclick = (event) => {
         event.preventDefault();
 
         if (!this.validateForm(addTodoForm)) { return; }
         
-        const data = this.serializeForm(addTodoForm); 
+        const data = this.serializeForm(addTodoForm);
+        console.log(data);
         const todoId = Number(addTodoForm.getAttribute('data-id'));
 
         todoId ? this.updateTodo(todoId, data) : this.saveTodo(data);
       };
 
-      // For clicking mark complete in form modal
-      addTodoForm.querySelector('[id=complete]').onclick = event => {
+      this.display.getMarkCompleteButton().onclick = event => {
         event.preventDefault();
-        
-        if (!addTodoForm.getAttribute('data-id')) {
+
+        if (this.display.formIsForNewTodo()) {
           alert('You must save the todo first.');
           return;
         }
-        
-        const todoId = Number(addTodoForm.getAttribute('data-id'));
+
+        const todoId = this.display.getTodoFormId();
         const data = this.serializeForm(addTodoForm);
         data.completed = true;
-
         this.updateTodo(todoId, data);
       };
 
-      // For clicking a todo title or container
-      todosList.addEventListener('click', event => {
+      this.display.getTodosList().addEventListener('click', event => {
         event.preventDefault();
 
-        const todoId = Number(event.target.closest('tr').getAttribute('data-id'));
-        const parent = event.target.parentElement;
-        const targetIsTodoTitle = event.target.tagName === 'LABEL';
-        const targetIsTodoContainer = event.target.classList.contains('list_item') 
-          || parent.classList.contains('list_item');
+        const todoId = this.display.getContainingTodoId(event.target);
 
-        if (targetIsTodoTitle) {
-          event.stopPropagation();
+        if (this.display.targetIsTodoTitle(event.target)) {
+          console.log('title');
           this.populateForm(addTodoForm, this.todoList.fetchTodo(todoId));
           addTodoForm.setAttribute('data-id', todoId);
-          this.displayModal();
-        } else if (targetIsTodoContainer) {
+          this.display.showFormModal();
+        }
+
+        if (this.display.targetIsTodoContainer(event.target)) {
+          console.log('container');
           const status = this.todoList.fetchTodo(todoId).completed;
           this.toggleTodoStatus(todoId, status)
         }
-      });
 
-      // For clicking a todo's delete button
-      todosList.addEventListener('click', event => {
-        event.preventDefault();
-        const todoId = Number(event.target.closest('tr').getAttribute('data-id'));
-        const parent = event.target.parentElement;
-        const targetIsDeleteButton = event.target.classList.contains('delete')
-          || parent.classList.contains('delete');
-
-        if (targetIsDeleteButton) {
+        if (this.display.targetIsDeleteButton(event.target)) {
+          console.log('delete');
           this.deleteTodo(todoId);
         }
       });
 
-      navList.onclick = event => {
-        this.setGroups(event);
-        this.render();
+      this.display.getNavList().onclick = event => {
+        this.setGroups(event.target);
+        this.display.render(this.getContext());
         this.bindEvents();
       }
     }
   }
 
-  const app = new App();
+  const app = new App(new Display());
 }

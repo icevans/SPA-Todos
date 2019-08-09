@@ -24,3 +24,13 @@ a simple application).
 other values updated as per the form.
 - Todos should be listed in the order they were added, which corresponds to the order
 of their id.
+- Incomplete due dates are allowed, but show up as "No Due Date"
+- If you update a todo's date, the current group stays the same, even if the
+todo was the last in that group.
+- If you close a modal without saving or marking complete, any data you had
+entered is lost
+- You cannot clear due date parts from a todo by moving them back to the placeholder
+value in the update form. This is actually a limitation of the API -- doing this
+correctly submits the date part with an empty string for a value, but line 30 of
+`routes/api.js` strips any properties with empty string values before constructing
+the update query.
