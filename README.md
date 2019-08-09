@@ -13,9 +13,15 @@ module that is responsible for generating/updating the DOM, and provides an
 interface for keeping the GUI in sync with the `TodoList`. Finally, there is an
 `App` object, which serves as the main entry-point and coordinator. The `App` is
 responsible for coordinating between the server, the `TodoList`, and the `Display`.
-It is also responsible for registering all event handlers (here there is some
-leakage between the `App` and the `Display`, but this seems acceptable in such
-a simple application).
+It is also responsible for registering all event handlers.
+
+In order to keep in sync with the server and support the user interacting with
+their todo list from different browser windows/devices, the app polls the server
+periodically and checks whether the todo list has change (using the ETag header).
+If the data has changed, the app re-renders its display. It ensures that its own
+data transformations don't later trigger an unnecessary re-render by sending a 
+HEAD request after every data transformation to keep its local copy of the ETag
+up to date.
 
 ## Assumptions
 
@@ -34,3 +40,5 @@ value in the update form. This is actually a limitation of the API -- doing this
 correctly submits the date part with an empty string for a value, but line 30 of
 `routes/api.js` strips any properties with empty string values before constructing
 the update query.
+- Todo list groups are sorted first by year, then by month, starting from the
+earliest date group.
