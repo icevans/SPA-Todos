@@ -287,8 +287,8 @@
       this.group = ALL_TODOS;
       this.display.render(); // pre-render while we wait on server for todos
       this.fetchTodos();
-
-      setInterval(() => this.fetchTodos(), 60000);
+      // poll server periodically for updates
+      setInterval(() => this.fetchTodos(), 60000); 
     }
 
     registerTemplates() {
