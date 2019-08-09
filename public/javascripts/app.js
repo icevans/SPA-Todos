@@ -3,7 +3,11 @@
   const COMPLETED = 'Completed';
 
   const statusCheck = response => {
-    return response.status < 400 ? response : new Error(response.statusText) 
+    if (response.ok) {
+      return response;
+    } else {
+      return new Error(response.statusText);
+    }
   };
 
   // TODO: Eliminate duplication between constructor and update
@@ -283,6 +287,8 @@
       this.group = ALL_TODOS;
       this.display.render(); // pre-render while we wait on server for todos
       this.fetchTodos();
+
+      setInterval(() => this.fetchTodos(), 60000);
     }
 
     registerTemplates() {
@@ -331,8 +337,6 @@
         ? null
         : this.display.getSubgroupTitle(target)
       ;
-
-      console.log(this.group, this.subGroup);
     }
 
     populateForm(form, todo) {
@@ -364,8 +368,6 @@
       const month = String(form.querySelector('[name="month"').value);
       const year = String(form.querySelector('[name="year"').value);
 
-      console.log(/^\d{2}$/.test());
-
       if (!/^\d{2}$/.test(month) && month !== '') {
         alert('Please enter valid month');
         return false;
@@ -376,11 +378,22 @@
     fetchTodos() {
       fetch(this.todosResource)
         .then(statusCheck)
-        .then(response => response.json())
+        .then(response => {
+          if (response.headers.has('ETag')) {
+            // cache the etag value for use in the next step
+            this.newTodoListETag = response.headers.get('ETag');
+          }
+          return response.json();
+        })
         .then(todos => {
-          this.todoList = new TodoList(todos);
-          this.display.render(this.getContext());
-          this.bindEvents();
+          // We only need to update the app if the server sent back a new etag
+          // If it did, we also need to update our etag cache.
+          if (this.newTodoListETag !== this.todoListETag) {
+            this.todoListETag = this.newTodoListETag;
+            this.todoList = new TodoList(todos);
+            this.display.render(this.getContext());
+            this.bindEvents();
+          }
         })
         .catch(error => {
           alert('Failed to get todos. Please try refreshing page.');
@@ -388,18 +401,23 @@
         });
     }
 
+    updateETag() {
+      fetch(this.todosResource, {method: 'HEAD'})
+      .then(statusCheck)
+      .then(response => this.todoListETag = response.headers.get('ETag'))
+    }
+
     sendTodoData(options) {
       const headers = new Headers();
       headers.append('Content-Type', 'application/json');
       options.data = JSON.stringify(options.data);
-
-      console.log(options);
 
       fetch(options.route, {
         method: options.method, headers: headers, body: options.data})
         .then(statusCheck)
         .then(response => response.json())
         .then(options.successCallback)
+        .then(this.updateETag.bind(this))
         .catch(error => console.log(error));
     }
 
@@ -441,6 +459,7 @@
         this.display.render(this.getContext());
         this.bindEvents();
       })
+      .then(this.updateETag.bind(this))
       .catch(error => console.log(error));
     }
 
@@ -461,7 +480,6 @@
         if (!this.validateForm(addTodoForm)) { return; }
         
         const data = this.serializeForm(addTodoForm);
-        console.log(data);
         const todoId = Number(addTodoForm.getAttribute('data-id'));
 
         todoId ? this.updateTodo(todoId, data) : this.saveTodo(data);
@@ -487,20 +505,17 @@
         const todoId = this.display.getContainingTodoId(event.target);
 
         if (this.display.targetIsTodoTitle(event.target)) {
-          console.log('title');
           this.populateForm(addTodoForm, this.todoList.fetchTodo(todoId));
           addTodoForm.setAttribute('data-id', todoId);
           this.display.showFormModal();
         }
 
         if (this.display.targetIsTodoContainer(event.target)) {
-          console.log('container');
           const status = this.todoList.fetchTodo(todoId).completed;
           this.toggleTodoStatus(todoId, status)
         }
 
         if (this.display.targetIsDeleteButton(event.target)) {
-          console.log('delete');
           this.deleteTodo(todoId);
         }
       });
