@@ -4,6 +4,16 @@ A simple todo list app with a Node.js backend, and vanilla JavaScript for the
 front-end. The front-end is a single-page app that interacts with the server
 via an API (see /docs/ for API documentation).
 
+## Setup
+
+To run the app locally:
+
+1. Create a sqlite database in the `db/` directory
+1. Import `reset.sql` into this database
+1. Run `npm install`
+1. Run `npm start` and view the app in your browser at `http://localhost:3000`
+1. API documentation can be viewed at `http://localhost:3000/doc`
+
 ## Design Considerations
 
 The app divides responsibilities into three main components. There is a `TodoList`
