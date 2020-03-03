@@ -10,7 +10,6 @@
     }
   };
 
-  // TODO: Eliminate duplication between constructor and update
   class Todo {
     constructor(props) {
       this.id = props.id;
@@ -118,8 +117,9 @@
     }
 
     countByDueDate(todos) {
-      // sort todos first by month, then year
-      todos.sort((a, b) => {
+      const todosCopy = [...todos];
+
+      todosCopy.sort((a, b) => {
         if (a.year !== b.year) {
           if (a.year < b.year) { return -1; }
           if (a.year > b.year) { return 1; }
@@ -131,7 +131,7 @@
         }
       });
 
-      return todos.reduce((counts, todo) => {
+      return todosCopy.reduce((counts, todo) => {
         counts[todo.due_date] = counts[todo.due_date] ?
           counts[todo.due_date] + 1 :
           1
@@ -282,13 +282,14 @@
     constructor(display) {
       this.todosResource = '/api/todos';
       this.todoResource = function(id) { return '/api/todos/' + id; };
+      /** @type {Display} */
       this.display = display;
       this.todoList = new TodoList([]);
       this.group = ALL_TODOS;
       this.display.render(); // pre-render while we wait on server for todos
       this.fetchTodos();
       // poll server periodically for updates
-      setInterval(() => this.fetchTodos(), 60000); 
+      setInterval(() => this.fetchTodos(), 60000);
     }
 
     registerTemplates() {
@@ -365,9 +366,10 @@
         alert('Title must be at least 3 characters')
         return false;
       }
-      const month = String(form.querySelector('[name="month"').value);
-      const year = String(form.querySelector('[name="year"').value);
+      const month = String(form.querySelector('[name="month"]').value);
+      const year = String(form.querySelector('[name="year"]').value);
 
+      console.log(month);
       if (!/^\d{2}$/.test(month) && month !== '') {
         alert('Please enter valid month');
         return false;
@@ -528,5 +530,6 @@
     }
   }
 
-  const app = new App(new Display());
+  const display = new Display();
+  const app = new App(display);
 }
