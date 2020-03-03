@@ -12,7 +12,7 @@ To run the app locally:
 1. Import `reset.sql` into this database
 1. Run `npm install`
 1. Run `npm start` and view the app in your browser at `http://localhost:3000`
-1. API documentation can be viewed at `http://localhost:3000/doc`
+1. API documentation can be viewed at `http://localhost:3000/docs`
 
 ## Design Considerations
 
