@@ -23,6 +23,17 @@ data transformations don't later trigger an unnecessary re-render by sending a
 HEAD request after every data transformation to keep its local copy of the ETag
 up to date.
 
+We're using Babel Standalone, which transpiles the main script client-side. This
+is a somewhat slow operation, and the page can't show anything until it's done
+becaues the script is responsible for rendering. Additionally, we're compiling
+Handlebars templates at runtime, which further slows us down. For prodcution, we'd
+handle both of these tasks in a build step before deploying. But to improve
+perceived performance on this dev version, as soon as the app initializes we
+pre-render the main-template before getting the main template. This way, something
+shows up as soon as possible. Additionally, in the HTML we inline a script that
+pre-fetches image assets that we will need in our template -- this way the 
+browser can download these while Babel is transpiling our script.
+
 ## Assumptions
 
 - If a user opens the edit modal for a todo, makes some changes, and then hits 
